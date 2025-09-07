@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 from moviepy.editor import VideoFileClip
 import whisper
 from transformers import pipeline
@@ -33,28 +32,34 @@ if uploaded_file:
 
     # --- Step 2: Transcribe Audio ---
     st.info("📝 Converting audio to text...")
-    model = whisper.load_model("base")
+    model = whisper.load_model("base")  # use "tiny" for faster processing
     result = model.transcribe("temp_audio.wav", fp16=False)
     transcript = result["text"]
     st.text_area("🗣 Transcript", transcript, height=200)
 
-    # --- Step 3: Summarize & Make Cute Notes ---
-    st.info("✨ Making Cute Notes...")
+    # --- Step 3: Generate Content-Based Cute Notes ---
+    st.info("✨ Generating Content-Based Cute Notes...")
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    summary = summarizer(transcript, max_length=150, min_length=40, do_sample=False)[0]['summary_text']
 
-    # Convert summary into side headings + bullet points
-    sentences = summary.split(". ")
-    cute_notes = "🌸 **Cute Notes** 🌸\n\n"
-    for i, s in enumerate(sentences, start=1):
-        if s.strip():
-            cute_notes += f"### 🏷 Point {i}\n- {s.strip()}.\n\n"
+    prompt = f"""
+Read the following transcript and create cute study notes.
+Automatically detect main topics from the content.
+For each topic:
+- Use the topic as a heading with an emoji
+- List key points as bullet points
+Keep it concise, cute, and easy to study.
 
-    st.markdown(cute_notes)
+Transcript: {transcript}
+"""
+
+    structured_notes = summarizer(prompt, max_length=400, min_length=100, do_sample=False)
+    notes_text = structured_notes[0]['summary_text']
+
+    st.markdown(f"🌸 **Cute Notes from Video** 🌸\n\n{notes_text}")
 
     # --- Download Button ---
     with open("cute_notes.txt", "w", encoding="utf-8") as f:
-        f.write(cute_notes)
+        f.write(notes_text)
 
     with open("cute_notes.txt", "rb") as f:
         st.download_button("📥 Download Notes", f, file_name="cute_notes.txt")
