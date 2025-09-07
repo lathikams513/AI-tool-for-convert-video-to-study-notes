@@ -3,3 +3,4 @@ moviepy
 openai-whisper
 transformers
 torch
+imageio-ffmpeg
